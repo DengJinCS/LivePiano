@@ -1,6 +1,6 @@
 """
 run_specgram.py
-Created By Alexander Yared (akyared@gmail.com)
+Created By DENGJIN (dengjin1995@gmail.com)
 
 Main Script for the Live Spectrogram project, a real time spectrogram
 visualization tool
@@ -20,11 +20,12 @@ from pitch import *
 import mic_read
 
 ############### Constants ###############
-#SAMPLES_PER_FRAME = 10 #Number of mic reads concatenated within a single window
-SAMPLES_PER_FRAME = 200
-nfft = 1024#256#1024 #NFFT value for spectrogram
-overlap = 512#512 #overlap value for spectrogram
+
+SAMPLES_PER_FRAME = 100#Number of mic reads concatenated within a single window
+nfft = 2048#NFFT value for spectrogram
+overlap = 1024#overlap value for spectrogram
 rate = mic_read.RATE #sampling rate
+chunk = mic_read.CHUNK_SIZE
 
 ############### Functions ###############
 """
@@ -71,9 +72,29 @@ def main():
     """
     Setup the plot paramters
     """
+
+
+    """
+    自定义映射颜色空间
+    """
+    import matplotlib.cm as cm
+    import matplotlib.colors as col
+    startcolor = '#000000'  # 黑色，读者可以自行修改
+    mid = '#0277bd'
+    endcolor = '#4FC3F7'  # 蓝色，读者可以自行修改
+    cmap = col.LinearSegmentedColormap.from_list('J', [startcolor, mid,endcolor])
+    # extra arguments are N=256, gamma=1.0
+    cm.register_cmap(cmap=cmap)
+
+
+
     extent = (bins[0],bins[-1]*SAMPLES_PER_FRAME,freqs[-1],freqs[0])#坐标
-    im = plt.imshow(arr2D,aspect='auto',extent = extent,interpolation="none",
-                    cmap = 'jet',norm = LogNorm(vmin=.01,vmax=1))
+    im = plt.imshow(arr2D,aspect='auto',extent = extent,interpolation="hanning",
+                    cmap='J',norm=LogNorm(vmin=arr2D.min()*100000))
+    #cmap = 'jet'
+    #interpolation="quadric",
+    #interpolation = "gaussian",
+    plt.yscale("linear")
 
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
@@ -94,6 +115,7 @@ def main():
             im_data = np.hstack((im_data, arr2D))
             im.set_array(im_data)
         return im,
+
 
     ############### Animate ###############
     anim = animation.FuncAnimation(fig,update_fig,blit = True,
