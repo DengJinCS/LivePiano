@@ -13,19 +13,19 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.colors import LogNorm
 import numpy as np
-import librosa.display
-from pitch import *
+import librosa
+from pitch import YIN_Pitch
 
 ############### Import Modules ###############
 import mic_read
 
 ############### Constants ###############
+from meta import nfft,overlap,rate,SAMPLES_PER_FRAME,show_rate
 
-SAMPLES_PER_FRAME = 100#Number of mic reads concatenated within a single window
-nfft = 2048#NFFT value for spectrogram
-overlap = 1024#overlap value for spectrogram
-rate = mic_read.RATE #sampling rate
-chunk = mic_read.CHUNK_SIZE
+#SAMPLES_PER_FRAME Number of mic reads concatenated within a single window
+#NFFT value for spectrogram
+#overlap value for spectrogram
+#sampling rate
 
 ############### Functions ###############
 """
@@ -89,8 +89,8 @@ def main():
 
 
     extent = (bins[0],bins[-1]*SAMPLES_PER_FRAME,freqs[-1],freqs[0])#坐标
-    im = plt.imshow(arr2D,aspect='auto',extent = extent,interpolation="hanning",
-                    cmap='J',norm=LogNorm(vmin=arr2D.min()*100000))
+    im = plt.imshow(arr2D,aspect='auto',extent = extent,interpolation="hamming",
+                    cmap='J',norm=LogNorm(vmin=arr2D.min()*show_rate))
     #cmap = 'jet'
     #interpolation="quadric",
     #interpolation = "gaussian",
@@ -103,8 +103,15 @@ def main():
     ##plt.colorbar() #enable if you want to display a color bar
     def update_fig(n):
         data = get_sample(stream, pa)
-        arr2D, freqs, bins = get_specgram(data, rate)
+        pitchEstimation = YIN_Pitch(data)
+        pitches = pitchEstimation.getPitches()
+        for pitch in pitches:
+            if pitch > 0:
+                #print("Frequency:",pitch)
+                print("Frequency:",pitch,"Note:",librosa.core.hz_to_note(pitch))
 
+        #显示时频谱
+        arr2D, freqs, bins = get_specgram(data, rate)
         im_data = im.get_array()
         if n < SAMPLES_PER_FRAME:
             im_data = np.hstack((im_data, arr2D))
