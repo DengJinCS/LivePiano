@@ -15,6 +15,7 @@ from matplotlib.colors import LogNorm
 import numpy as np
 import librosa
 from pitch import YIN_Pitch
+import madmom
 
 ############### Import Modules ###############
 import mic_read
@@ -61,11 +62,12 @@ outputs: updated image
 
 def main():
     ############### Initialize Plot ###############
-    fig = plt.figure()
+    #fig = plt.figure()
     """
     Launch the stream and the original spectrogram
     """
     stream,pa = mic_read.open_mic()
+    fig = plt.figure()
     data = get_sample(stream,pa)
 
     arr2D,freqs,bins = get_specgram(data,rate)
@@ -101,6 +103,9 @@ def main():
     plt.title('Real Time Spectogram')
     plt.gca().invert_yaxis()
     ##plt.colorbar() #enable if you want to display a color bar
+
+    proc = madmom.features.onsets.CNNOnsetProcessor()
+    #計算onset概率，
     def update_fig(n):
         data = get_sample(stream, pa)
         pitchEstimation = YIN_Pitch(data)
@@ -110,6 +115,10 @@ def main():
                 #print("Frequency:",pitch)
                 print("Frequency:",pitch,"Note:",librosa.core.hz_to_note(pitch))
 
+        prb = proc(data)
+        for p in prb:
+            if p > 0.9:
+                print("Onset prob:{}".format(p))
         #显示时频谱
         arr2D, freqs, bins = get_specgram(data, rate)
         im_data = im.get_array()
