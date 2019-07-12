@@ -28,11 +28,11 @@ for i in onset:
             print("onset:",n/100)
             count += 1
 new_onset = np.zeros(len(k))
-block = int(len(k)/len(onset))
+block = len(k)/len(onset)
 onset_count = 0
 for i in range(len(onset)):
-    for j in range(block):
-        new_onset[i*block+j] = onset[onset_count]
+    for j in range(int(block)):
+        new_onset[int(i*block+j)] = onset[onset_count]
     onset_count += 1
 print("durition:{}\nonset:{}(100frames/s)".format(len(k)/sr,count))
 
