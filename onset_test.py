@@ -3,9 +3,10 @@ import madmom
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
-music = 'piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav'
+piano = 'piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav'
+music = '/Users/atticus/Music/网易云音乐/nocturne.mp3'
 y,sr = librosa.load(music,None)
-k = y
+k = y[:6*sr]
 spec = madmom.audio.spectrogram.spec(librosa.stft(k))
 CNNOnset = madmom.features.onsets.CNNOnsetProcessor()
 RNNOnset = madmom.features.onsets.RNNOnsetProcessor()
