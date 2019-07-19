@@ -38,7 +38,7 @@ outputs: int16 data array
 """
 def get_data(stream,pa):
     input_data = stream.read(CHUNK_SIZE)
-    data = np.fromstring(input_data,np.int16)
+    data = np.fromstring(input_data,np.float16)
     return data
 
 ############### Test Functions ###############

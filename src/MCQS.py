@@ -11,7 +11,7 @@ y = y[:100*sr]
 #y = y[int(sr*3.29009):int(sr*3.5901)]#MIDI:30
 #y = y[int(sr*0.5):int(sr*0.8)]#MIDI:21
 
-def MCQS(y,sr,from_note='C2',to_note='C7',max_n = 5):
+def MCQS(y,sr,from_note='C2',to_note='C7',max_n = 7):
     #caculate the CQT spectrum
     #retaining only the local maximum pitch
     #restrict the top max_n pitch
@@ -42,7 +42,7 @@ def MCQS(y,sr,from_note='C2',to_note='C7',max_n = 5):
     T_MCQS = MCQS.transpose()
 
     return A2dB,T_MCQS
-
+"""
 A2dB,T_MCQS = MCQS(y,sr)
 plt.subplot(2,1,2)
 librosa.display.specshow(T_MCQS,sr=sr,x_axis='time',y_axis='cqt_note')
@@ -57,5 +57,6 @@ plt.title("Constant-Q power spectrum")
 plt.tight_layout()
 
 plt.show()
+"""
 
 

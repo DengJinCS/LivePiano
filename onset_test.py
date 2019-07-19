@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 piano = 'piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav'
 music = '/Users/atticus/Music/网易云音乐/nocturne.mp3'
-y,sr = librosa.load(music,None)
-k = y[:6*sr]
+y,sr = librosa.load(piano,None)
+k = y
 spec = madmom.audio.spectrogram.spec(librosa.stft(k))
 CNNOnset = madmom.features.onsets.CNNOnsetProcessor()
 RNNOnset = madmom.features.onsets.RNNOnsetProcessor()
@@ -17,17 +17,19 @@ percussive = librosa.effects.percussive(k)
 cnn_onset = CNNOnset(k)
 rnn_onset = RNNOnset(k)
 onset = (cnn_onset + rnn_onset)/2
+plt.plot(onset)
+plt.show()
 print(len(onset))
 count = 0
 n = 0
 pre = 0
 for i in onset:
-    n += 1
-    if i > 0.4:
+    if i > 0.3:
         if n - pre > 5:
             pre = n
             print("onset:",n/100)
             count += 1
+    n += 1
 new_onset = np.zeros(len(k))
 block = len(k)/len(onset)
 onset_count = 0

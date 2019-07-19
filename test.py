@@ -1,10 +1,50 @@
+import librosa
 import numpy as np
-from scipy.signal import argrelextrema
-a = np.array([1,2,3,4,5,4,3,2,1,2,3,2,1,2,3,4,5,6,5,4,3,2,1])
+from src.Onset import Onset
+piano = 'piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav'
+music = '/Users/atticus/Music/网易云音乐/nocturne.mp3'
+y,sr = librosa.load(piano,None)
 
-maxIndex = argrelextrema(a,np.greater)
-RmaxIndex = np.argsort(a[maxIndex])
-print("maxIndex:",maxIndex,len(maxIndex[0]))
-print("RmaxIndex:",RmaxIndex,len(RmaxIndex))
-print(a[maxIndex])
-print(a[maxIndex[RmaxIndex]])
+block_dur = 0.1#s
+block_len = int(block_dur * sr)
+n_block = int(len(y) / sr / block_dur)
+
+count_onset = 0
+pre_onset_index = 0
+pre_onset = 0
+margin = 0.2
+
+for i in range(n_block):
+    block = y[i*block_len:(i+1)*block_len]
+    index,onset = Onset(block)
+
+
+    if index == block_dur / 0.01 - 1:
+        # the local maxmum at the end of a block
+        # read a new block
+        i += 1
+        block = y[i * block_len:(i + 1) * block_len]
+        index, onset = Onset(block)
+        if onset >= pre_onset:
+            if onset > margin:
+                count_onset += 1
+        else:
+            continue
+
+    elif index == 0:
+        # the local maxmum at the begain of a block
+        # compere with the pre block
+        if pre_onset == onset:
+            index, onset = pre_onset_index, pre_onset
+        else:
+            continue
+
+    else:
+        if onset > margin:
+            count_onset += 1
+
+    if onset > margin:
+        pre_onset_index, pre_onset = index, onset
+        onset_time = i * block_dur + (index-1) / 100
+        # every 10ms as a frame to get a result
+        print("{}-{}:{}".format(count_onset, index, onset_time))
