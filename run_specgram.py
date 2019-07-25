@@ -145,7 +145,7 @@ def main():
 
     ############### Terminate ###############
     stream.stop_stream()
-    stream.close()
+    #stream.close()
     pa.terminate()
     print("Program Terminated")
 

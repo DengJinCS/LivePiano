@@ -30,6 +30,7 @@ def open_mic():
                      frames_per_buffer = CHUNK_SIZE)
     return stream,pa
 
+
 """
 get_data:
 reads from the audio stream for a constant length of time, converts it to data
@@ -38,7 +39,7 @@ outputs: int16 data array
 """
 def get_data(stream,pa):
     input_data = stream.read(CHUNK_SIZE)
-    data = np.fromstring(input_data,np.float16)
+    data = np.fromstring(input_data,np.int16)
     return data
 
 ############### Test Functions ###############

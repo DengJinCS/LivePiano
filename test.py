@@ -5,14 +5,14 @@ piano = 'piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav'
 music = '/Users/atticus/Music/网易云音乐/nocturne.mp3'
 y,sr = librosa.load(piano,None)
 
-block_dur = 0.1#s
+block_dur = 0.2#s
 block_len = int(block_dur * sr)
 n_block = int(len(y) / sr / block_dur)
 
 count_onset = 0
 pre_onset_index = 0
 pre_onset = 0
-margin = 0.2
+margin = 0.4
 
 for i in range(n_block):
     block = y[i*block_len:(i+1)*block_len]
@@ -23,12 +23,15 @@ for i in range(n_block):
         # the local maxmum at the end of a block
         # read a new block
         i += 1
+        count_onset += 1
+        # cache the current result
+        pre_onset_index, pre_onset = index, onset
         block = y[i * block_len:(i + 1) * block_len]
         index, onset = Onset(block)
-        if onset >= pre_onset:
-            if onset > margin:
-                count_onset += 1
+        if pre_onset == onset:
+            index, onset = pre_onset_index, pre_onset
         else:
+            pre_onset_index, pre_onset = index, onset
             continue
 
     elif index == 0:
