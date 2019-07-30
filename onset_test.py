@@ -3,7 +3,7 @@ import madmom
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
-piano = 'piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav'
+piano = '/Code/PyCharm/LivePiano/piano/chopin_nocturne_b49.wav'
 music = '/Users/atticus/Music/网易云音乐/nocturne.mp3'
 y,sr = librosa.load(piano,None)
 k = y
