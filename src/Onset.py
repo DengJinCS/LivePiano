@@ -8,7 +8,8 @@ def Onset(y):
 
     cnn_onset = CNNOnset(y)
     rnn_onset = RNNOnset(y)
-    onset = (cnn_onset + rnn_onset) / 2
+    #onset = (cnn_onset + rnn_onset) / 2
+    onset = cnn_onset
     max_index, max_onset = 0, 0
     for index in range(len(onset)):
         if onset[index] > max_onset:

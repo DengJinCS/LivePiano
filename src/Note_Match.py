@@ -82,13 +82,72 @@ def SDVs(MCQS,type=3,onset=-1,threshold=3):
                 Psi[k] = log10(dA[k])
         return Psi
 
-def SPVs(midi):
+def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
     mid = MidiFile(midi)
-    count = 0
+    note_on_count = 0
+    time = 0
+    onset_count = 1
+    onset_index = 0
+    min_note = 108
+    max_note = 0
     for msg in mid:
         if msg.type == "note_on":
-            count += 1
-        print(count,msg)
+            if msg.note > max_note:
+                max_note = msg.note
+            if msg.note < min_note:
+                min_note = msg.note
+        pre_time = time
+        if msg.time != 0:
+            time += msg.time
+        if msg.type == "note_on" and pre_time != time:
+            onset_count += 1
+    note_range = max_note - min_note + 25
+    print(min_note,max_note)
+    concurrence = np.zeros((onset_count, note_range), dtype=int)
+    SPV1 = np.zeros((onset_count, note_range), dtype=int)
+    SPV2 = np.zeros((onset_count, note_range), dtype=int)
+    SPV3 = np.zeros((onset_count, note_range), dtype=int)
+
+    time = 0
+    for msg in mid:
+        pre_time = time
+        if msg.time != 0:
+            time += msg.time
+        if pre_time != time:
+            print('\n')
+        if msg.type == "note_on":
+            if note_on_count == 1:
+                print(onset_index,time,msg)
+                note_on_count += 1
+                continue
+            if pre_time != time:
+                onset_index += 1
+            """
+            [ 0] PitchItself
+            [12] SecondOctave
+            [19] PerfectFifth
+            [24] Third Octave
+            """
+            concurrence[onset_index][msg.note - min_note + 0] = 1
+            for over_tune in [0,12]:
+                index = msg.note - min_note + over_tune
+                if index <= max_note:
+                    SPV1[onset_index][index] = 1
+            for over_tune in [0,12,19]:
+                index = msg.note - min_note + over_tune
+                if index <= max_note:
+                    SPV2[onset_index][index] = 1
+            for over_tune in [0, 12, 19, 24]:
+                index = msg.note - min_note + over_tune
+                if index <= max_note:
+                    SPV3[onset_index][index] = 1
+            print(onset_index, time, msg)
+    return min_note,max_note,concurrence,SPV1,SPV2,SPV3
+
+
+_,_,concurrence,spv1,spv2,spv3 = SPVs()
+for i in range(100):
+    print(i,'\n',spv3[i])
 
 
 
