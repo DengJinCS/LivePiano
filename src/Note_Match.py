@@ -14,9 +14,6 @@ def Onset(y,margin):
     # percussive = librosa.effects.percussive(y)
 
     cnn_onset = CNNOnset(y)
-    rnn_onset = RNNOnset(y)
-    #onset = (cnn_onset + rnn_onset) / 2
-    onset = cnn_onset
     index1 = int(len(cnn_onset)/3) -1
     index2 = int(len(cnn_onset)*2/3) - 1
     target = cnn_onset[index1:index2]#中间窗口
@@ -62,12 +59,12 @@ def MCQS(y,sr,from_note=21,to_note=108,max_n = 12):
         #print("Current Local Max:{}".format(len(maxIndex[0])))
         for i in maxIndex[0][restricted_max_Index]:
             MCQS[frame][i] = frame_pitch[frame][i]
-    print("Normlized:{}".format(MCQS.shape))
+    #print("Normlized:{}".format(MCQS.shape))
     T_MCQS = MCQS.transpose()
 
     return T_MCQS
 
-def SDVs(MCQS,type=3,onset=-1,onste_len = 30):
+def SDVs(MCQS,type=1,onset=-1,onste_len = 30):
     # Spectrum Difference Vectors (SDVs) ψi
     # dAi is the difference between these two vectors
     T_MCQS = MCQS.transpose()
@@ -77,12 +74,12 @@ def SDVs(MCQS,type=3,onset=-1,onste_len = 30):
         V_before_onset = T_MCQS[index:index+bias]
         V_after_onset = T_MCQS[index+bias:index+2*bias]
 
-        Mean_before = T_MCQS[index]
-        Mean_after = T_MCQS[index]
+        Mean_before = np.zeros_like(T_MCQS[0])
+        Mean_after = np.zeros_like(T_MCQS[0])
 
-        dA = T_MCQS[0] - T_MCQS[0]
+        dA = np.zeros_like(T_MCQS[0])
         dAmax = 0
-        Psi = T_MCQS[0] - T_MCQS[0]
+        Psi = np.zeros_like(T_MCQS[0])
         for k in range(len(T_MCQS[0])):
             # taking the averages of the magnitude spectrum = dAi(k)
             # immediately before and after an onset i.
@@ -167,7 +164,6 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
             """
 
             Concurrence[onset_index][msg.note - min_note + 0] = 1
-            print("msg.note:{} index:{}".format(msg.note,msg.note - min_note))
             for over_tune in [0,12]:
                 index = msg.note - min_note + over_tune
                 if index < note_range:
@@ -176,7 +172,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
                 index = msg.note - min_note + over_tune
                 if index < note_range:
                     SPV2[onset_index][index] = 1
-            for over_tune in [0, 12, 19, 24]:
+            for over_tune in [0, 12, 19, 24,28,34]:
                 index = msg.note - min_note + over_tune
                 if index < note_range:
                     SPV3[onset_index][index] = 1
@@ -207,11 +203,5 @@ def Ita(audio_onset2,audio_onset1,audio_onset,
     return ita
 #sdv = MCQS(y,sr,min_note,max_note,max_concurrence)
 #S = Similarity(sdv,Concurrence,spv1,spv2,spv3)
-
-a = [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,1]
-b = [0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1]
-c = pearsonr(a,b)
-print(c)
-print(librosa.note_to_midi('A0'))
 
 
