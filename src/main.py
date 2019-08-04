@@ -1,4 +1,3 @@
-
 from src.Note_Match import *
 
 piano_wav = '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav'

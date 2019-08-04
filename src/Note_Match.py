@@ -94,9 +94,10 @@ def SDVs(MCQS,type=1,onset=-1,onste_len = 30):
             Mean_after[k] = sum_after / len(V_after_onset)
 
             dA[k] = Mean_after[k] - Mean_before[k]
-            if dAmax > dA[k]:
+            if dAmax < dA[k]:
                 dAmax = dA[k]
         for k in range(len(T_MCQS[0])):
+            print("dMax = ",dAmax)
             if type == 1 and dA[k] > dAmax/20:
                 Psi[k] = dA[k]
             elif type == 2 and dA[k] > dAmax/20:
