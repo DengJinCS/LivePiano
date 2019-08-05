@@ -110,7 +110,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
     mid = MidiFile(midi)
     note_on_count = 0
     time = 0 # onset time
-    onset_count = 1 # onset count
+    onset_count = 0 # onset count
     onset_index = -1 #
     min_note = 108 # minimum note midi
     max_note = 0 # maxmum note midi
@@ -130,6 +130,10 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
         if cur_concurrence > max_concurrence:
             max_concurrence = cur_concurrence
         if msg.type == "note_on":
+            note_on_count += 1
+            if note_on_count == 1 and msg.time == 0:
+                onset_count += 1
+                cur_concurrence = 1
             if pre_time != time:
                 onset_count += 1
                 cur_concurrence = 1
@@ -146,6 +150,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
 
 
     time = 0
+    note_on_count = 0
     for msg in mid:
         if msg.type != 'note_on' and msg.type != 'note_off':
             continue
