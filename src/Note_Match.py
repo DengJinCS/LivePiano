@@ -139,9 +139,11 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
     note_range = max_note - min_note + 1
     #print(min_note,max_note,note_range)
     Concurrence = np.zeros((onset_count, note_range), dtype=int)
+    Concurrence_time = np.zeros(onset_count)
     SPV1 = np.zeros((onset_count, note_range), dtype=int)
     SPV2 = np.zeros((onset_count, note_range), dtype=int)
     SPV3 = np.zeros((onset_count, note_range), dtype=int)
+
 
     time = 0
     for msg in mid:
@@ -151,10 +153,10 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
         if msg.time != 0:
             time += msg.time
         if msg.type == "note_on":
-            if note_on_count == 1:
+            note_on_count += 1
+            if note_on_count == 1 and msg.time == 0:
                 #print(onset_index,time,msg)
-                note_on_count += 1
-                continue
+                onset_index += 1
             if pre_time != time:
                 onset_index += 1
             """
@@ -165,6 +167,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
             """
 
             Concurrence[onset_index][msg.note - min_note + 0] = 1
+            Concurrence_time[onset_index] = time
             for over_tune in [0,12]:
                 index = msg.note - min_note + over_tune
                 if index < note_range:
@@ -177,7 +180,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
                 index = msg.note - min_note + over_tune
                 if index < note_range:
                     SPV3[onset_index][index] = 1
-    return min_note,max_note,max_concurrence,Concurrence,SPV1,SPV2,SPV3
+    return min_note,max_note,max_concurrence,Concurrence,SPV1,SPV2,SPV3,Concurrence_time
 
 def Similarity(sdv,concurrence,spv1,spv2,spv3,k):
     correlation1 = pearsonr(sdv, concurrence[k])[0]
@@ -185,6 +188,20 @@ def Similarity(sdv,concurrence,spv1,spv2,spv3,k):
     correlation3 = pearsonr(sdv, spv2[k])[0]
     correlation4 = pearsonr(sdv, spv3[k])[0]
     return max(correlation1,correlation2,correlation3,correlation4)
+
+def Get_j(DP,i,ja,delta_j):
+    # DP (Dynamic programming ) is employed to determine the path with maximum overall similarity.
+    # i is the ith onset
+    # ja is the index of the previous matched concurrence and
+    # Δj is a tolerance window.
+    # j0 is the index of the previous matched concurrence.
+    maxD = 0
+    j0 = 0
+    for score in range(ja - delta_j, ja + delta_j + 1):
+        if DP[i-1][score] > maxD:
+            maxD = DP[i-1][score]
+            j0 = score
+    return j0
 
 def Ita(audio_onset2,audio_onset1,audio_onset,
         score_onset2,score_onset1,score_onset,
