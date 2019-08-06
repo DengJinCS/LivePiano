@@ -164,6 +164,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
                 onset_index += 1
             if pre_time != time:
                 onset_index += 1
+            Concurrence_time[onset_index] = time
             """
             [ 0] PitchItself
             [12] SecondOctave
@@ -172,7 +173,6 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
             """
 
             Concurrence[onset_index][msg.note - min_note + 0] = 1
-            Concurrence_time[onset_index] = time
             for over_tune in [0,12]:
                 index = msg.note - min_note + over_tune
                 if index < note_range:
@@ -201,11 +201,15 @@ def Get_j(DP,i,ja,delta_j):
     # Δj is a tolerance window.
     # j0 is the index of the previous matched concurrence.
     maxD = 0
+    maxT = 0
     j0 = 0
+    j1 = 0
     for score in range(ja - delta_j, ja + delta_j + 1):
         if DP[i-1][score] > maxD:
             maxD = DP[i-1][score]
             j0 = score
+    for score in range(j0 - delta_j, j0 + 1):
+        if
     return j0
 
 def Ita(audio_onset2,audio_onset1,audio_onset,
