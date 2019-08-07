@@ -24,9 +24,9 @@ DP = np.zeros((len(concurrence) + 1,len(concurrence) + 1))
 
 for i in range(n_block-2):
     if i == 0:
-        buff[int(block * sr):int(block * sr * 2 - 1)] = y[:int(block * sr - 1)]
+        buff[int(block * sr):int(block * sr * 2)] = y[:int(block * sr)]
     elif i == 1:
-        buff[:int(block * sr * 2 - 1)] = y[:int(block * sr * 2 - 1)]
+        buff[:int(block * sr * 2)] = y[:int(block * sr * 2)]
     else:
         buff = y[int((i - 1) * block * sr):int((i + 2) * block * sr)]
     onset = Onset(buff,margin=margin)
