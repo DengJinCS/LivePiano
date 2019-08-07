@@ -194,7 +194,7 @@ def Similarity(sdv,concurrence,spv1,spv2,spv3,k):
     correlation4 = pearsonr(sdv, spv3[k])[0]
     return max(correlation1,correlation2,correlation3,correlation4)
 
-def Get_j(DP,i,ja,delta_j):
+def Get_j(DP,i,ja,delta_j,):
     # DP (Dynamic programming ) is employed to determine the path with maximum overall similarity.
     # i is the ith onset
     # ja is the index of the previous matched concurrence and
@@ -208,7 +208,7 @@ def Get_j(DP,i,ja,delta_j):
         if DP[i-1][score] > maxD:
             maxD = DP[i-1][score]
             j0 = score
-    for score in range(j0 - delta_j, j0 + 1):
+    for score in range(j0, j0 + delta_j + 1):
         if
     return j0
 
