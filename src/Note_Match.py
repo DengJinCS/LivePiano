@@ -110,8 +110,8 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
     mid = MidiFile(midi)
     note_on_count = 0
     time = 0 # onset time
-    onset_count = 0 # onset count
-    onset_index = -1 #
+    onset_count = 1 # onset count, retaining 0 index
+    onset_index = 0 # retaining 0 index
     min_note = 108 # minimum note midi
     max_note = 0 # maxmum note midi
     max_concurrence = 1 #max concurrence count in whole concurrence
@@ -187,29 +187,51 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
                     SPV3[onset_index][index] = 1
     return min_note,max_note,max_concurrence,Concurrence,SPV1,SPV2,SPV3,Concurrence_time
 
-def Similarity(sdv,concurrence,spv1,spv2,spv3,k):
-    correlation1 = pearsonr(sdv, concurrence[k])[0]
-    correlation2 = pearsonr(sdv, spv1[k])[0]
-    correlation3 = pearsonr(sdv, spv2[k])[0]
-    correlation4 = pearsonr(sdv, spv3[k])[0]
-    return max(correlation1,correlation2,correlation3,correlation4)
 
-def Get_j(DP,i,ja,delta_j,):
+def Update_S(S,sdv,concurrence,spv1,spv2,spv3,onset_count = 0,scope = 10):
+    low_index, high_index = 0, len(concurrence)
+    if onset_count - scope < 0:
+        low_index = 0
+    if onset_count + scope > len(concurrence):
+        high_index = len(concurrence)
+    for j in range(low_index,high_index):
+        correlation1 = pearsonr(sdv, concurrence[j])[0]
+        correlation2 = pearsonr(sdv, spv1[j])[0]
+        correlation3 = pearsonr(sdv, spv2[j])[0]
+        correlation4 = pearsonr(sdv, spv3[j])[0]
+        similarity =  max(correlation1, correlation2, correlation3, correlation4)
+        S[onset_count][j] = similarity
+    return S
+
+
+def Get_j(DP,i,ja,delta_j,concurrence_time,onset_time):
     # DP (Dynamic programming ) is employed to determine the path with maximum overall similarity.
     # i is the ith onset
     # ja is the index of the previous matched concurrence and
     # Δj is a tolerance window.
     # j0 is the index of the previous matched concurrence.
+    # concurrence_time from midi score
+    # onset_time form real time onset
     maxD = 0
     maxT = 0
     j0 = 0
     j1 = 0
+    aligned = []
     for score in range(ja - delta_j, ja + delta_j + 1):
         if DP[i-1][score] > maxD:
             maxD = DP[i-1][score]
             j0 = score
+    if ja < 5:
+
+    else:
+        # back tracing 5 steps from(i-1, j0)
+        for aligned_score in range(ja - 4, ja + 1):
+            aligned_onset =
+            aligned.append([])
+    # back tracing j0 steps from(i-1, j0)
     for score in range(j0, j0 + delta_j + 1):
-        if
+
+
     return j0
 
 def Ita(audio_onset2,audio_onset1,audio_onset,

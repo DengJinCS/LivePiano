@@ -12,15 +12,15 @@ onset_time = np.zeros(len(concurrence) * 2)#onset时间
 
 #y = y[:50*sr]
 margin = 0.9
-onset_count = -1
-score_count = -1# current matched score count
-j0 = -1# j0 is the index of the previous matched score concurrence.
+onset_count = 0
+score_count = 0# current matched score count
+j0 = 0# j0 is the index of the previous matched score concurrence.
 
 block = 0.1#s
 n_block = int((len(y)/sr)/block)
 buff = np.zeros(int(3 * block * sr))
-DP = np.zeros((len(concurrence) + 1,len(concurrence) + 1))
-
+S = np.zeros((len(concurrence) + 1,len(concurrence) * 2))
+DP = np.zeros((len(concurrence) + 1,len(concurrence) * 2))
 
 for i in range(n_block-2):
     if i == 0:
@@ -35,7 +35,7 @@ for i in range(n_block-2):
     else:
         onset_count +=1
         begin_block = i
-        if onset_count == 0:
+        if onset_count == 1:
             onset_time[onset_count] = concurrence_time[0]
         else:
             onset_time[onset_count] = onset_time[0] + (i - begin_block) * block + onset * 0.01
@@ -43,10 +43,16 @@ for i in range(n_block-2):
                     from_note=min_note,to_note=max_note+1,
                     max_n=max_concurrence*6)
         sdv = SDVs(mcqs,onset=onset)
-        similarity = Similarity(sdv,concurrence,spv1,spv2,spv3,onset_count)
+
+        Update_S(S=S,sdv=sdv,concurrence=concurrence,
+                 spv1=spv1,spv2=spv2,spv3=spv3,
+                 onset_count = onset_count,scope = 10)
+
+
+        #Update DP
+
         print("sdv:\n",sdv)
         print("spv3:\n",spv3[onset_count])
-        print("onset:",onset_count,"similarity:",similarity)
 
 
 
