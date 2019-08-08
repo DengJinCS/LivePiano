@@ -4,6 +4,7 @@ import madmom
 from mido import MidiFile
 from scipy.signal import argrelextrema
 from math import log10
+import pretty_midi
 from scipy.stats.stats import pearsonr
 
 def Onset(y,margin):
@@ -38,8 +39,8 @@ def MCQS(y,sr,from_note=21,to_note=108,max_n = 12):
     #restrict the top max_n pitch
     #return the modified CQT Spectrum
 
-    n_bins = to_note - from_note
-    C = np.abs(librosa.cqt(y, sr=sr,hop_length=256, bins_per_octave=12,
+    n_bins = to_note - from_note + 26
+    C = np.abs(librosa.cqt(y, sr=sr,hop_length=512, bins_per_octave=12,
                            window='hamm', fmin=librosa.midi_to_hz(from_note),
                            n_bins=n_bins))
     A2dB = librosa.amplitude_to_db(C, ref=np.max)
@@ -64,12 +65,12 @@ def MCQS(y,sr,from_note=21,to_note=108,max_n = 12):
 
     return T_MCQS
 
-def SDVs(MCQS,type=1,onset=-1,onste_len = 30):
+def SDVs(MCQS,type=1,onset=-1,onset_len = 30):
     # Spectrum Difference Vectors (SDVs) ψi
     # dAi is the difference between these two vectors
     T_MCQS = MCQS.transpose()
     bias = int(len(T_MCQS) / 3)
-    index = int(onset * len(T_MCQS) / onste_len)
+    index = int(onset * len(T_MCQS) / onset_len)
     if onset != -1:
         V_before_onset = T_MCQS[index:index+bias]
         V_after_onset = T_MCQS[index+bias:index+2*bias]
@@ -140,7 +141,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
             else:
                 cur_concurrence += 1
 
-    note_range = max_note - min_note + 1
+    note_range = max_note - min_note + 26
     #print(min_note,max_note,note_range)
     Concurrence = np.zeros((onset_count, note_range), dtype=int)
     Concurrence_time = np.zeros(onset_count)
@@ -181,10 +182,114 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
                 index = msg.note - min_note + over_tune
                 if index < note_range:
                     SPV2[onset_index][index] = 1
-            for over_tune in [0, 12, 19, 24,28,34]:
+            for over_tune in [0, 12, 19, 24, 28, 31, 34]:
                 index = msg.note - min_note + over_tune
                 if index < note_range:
                     SPV3[onset_index][index] = 1
+    return min_note,max_note,max_concurrence,Concurrence,SPV1,SPV2,SPV3,Concurrence_time
+def ImprovedSPVs(midi='../piano/chopin_nocturne_b49.mid',step = 0.1):
+    mid = MidiFile(midi)
+    note_on_count = 0
+    time = 0 # onset time
+    onset_count = 1 # onset count, retaining 0 index
+    onset_index = 0 # retaining 0 index
+    min_note = 108 # minimum note midi
+    max_note = 0 # maxmum note midi
+    max_concurrence = 1 #max concurrence count in whole concurrence
+    cur_concurrence = 1 #concurrence count in every concurrence
+    for msg in mid:
+        if msg.type != 'note_on' and msg.type != 'note_off':
+            continue
+        if msg.type == "note_on":
+            if msg.note > max_note:
+                max_note = msg.note
+            if msg.note < min_note:
+                min_note = msg.note
+        pre_time = time
+        if msg.time != 0:
+            time += msg.time
+        if cur_concurrence > max_concurrence:
+            max_concurrence = cur_concurrence
+        if msg.type == "note_on":
+            note_on_count += 1
+            if note_on_count == 1 and msg.time == 0:
+                onset_count += 1
+                cur_concurrence = 1
+            if pre_time != time:
+                onset_count += 1
+                cur_concurrence = 1
+            else:
+                cur_concurrence += 1
+
+    note_range = max_note - min_note + 26
+    print("range:",max_note,min_note,note_range)
+    Concurrence_time = np.zeros(onset_count)
+
+    Concurrence = np.zeros((onset_count, note_range))
+    SPV1 = np.zeros((onset_count, note_range))
+    SPV2 = np.zeros((onset_count, note_range))
+    SPV3 = np.zeros((onset_count, note_range))
+
+    """
+    synthesized from midi
+    get CQT
+    """
+    midi_data = pretty_midi.PrettyMIDI(midi)
+    y, sr = midi_data.synthesize(), 44100
+    print("audio synthesized from", midi)
+    n_bins = max_note - min_note + 26
+    print("bins:",n_bins)
+    C = np.abs(librosa.cqt(y, sr=sr, hop_length=512, bins_per_octave=12,
+                           window='hamm', fmin=librosa.midi_to_hz(min_note),
+                           n_bins=n_bins))
+    CQT = C.transpose()
+    A2dB = librosa.amplitude_to_db(CQT, ref=np.max)
+    cqt_per_second = len(A2dB) / len(y) * sr
+    """
+    synthesized from midi
+    get CQT
+    """
+
+    time = 0
+    note_on_count = 0
+    for msg in mid:
+        if msg.type != 'note_on' and msg.type != 'note_off':
+            continue
+        pre_time = time
+        if msg.time != 0:
+            time += msg.time
+        if msg.type == "note_on":
+            note_on_count += 1
+            if note_on_count == 1 and msg.time == 0:
+                #print(onset_index,time,msg)
+                onset_index += 1
+            if pre_time != time:
+                onset_index += 1
+            Concurrence_time[onset_index] = time
+            """
+            [ 0] PitchItself
+            [12] SecondOctave
+            [19] PerfectFifth
+            [24] Third Octave
+            """
+            index1, index2 = int(time * cqt_per_second), int((time + step) * cqt_per_second)
+            print(index2-index1)
+            Mean_CQT = np.mean(A2dB[index1:index2],axis=0)
+
+            Concurrence[onset_index][msg.note - min_note + 0] = 80 + Mean_CQT[msg.note - min_note + 0]
+            for over_tune in [0,12]:
+                index = msg.note - min_note + over_tune
+                if index < note_range:
+                    SPV1[onset_index][index] = 80 + Mean_CQT[index]
+            for over_tune in [0,12,19]:
+                index = msg.note - min_note + over_tune
+                if index < note_range:
+                    SPV2[onset_index][index] = 80 + Mean_CQT[index]
+            for over_tune in [0, 12, 19, 24, 28, 31, 34]:
+                index = msg.note - min_note + over_tune
+                if index < note_range:
+                    SPV3[onset_index][index] = 80 + Mean_CQT[index]
+
     return min_note,max_note,max_concurrence,Concurrence,SPV1,SPV2,SPV3,Concurrence_time
 
 
@@ -204,7 +309,7 @@ def Update_S(S,sdv,concurrence,spv1,spv2,spv3,onset_count = 0,scope = 10):
     return S
 
 
-def Get_j(DP,i,ja,delta_j,concurrence_time,onset_time):
+def Get_j(DP,i,ja,concurrence_time,onset_time,delta_j = 5):
     # DP (Dynamic programming ) is employed to determine the path with maximum overall similarity.
     # i is the ith onset
     # ja is the index of the previous matched concurrence and
@@ -222,15 +327,15 @@ def Get_j(DP,i,ja,delta_j,concurrence_time,onset_time):
             maxD = DP[i-1][score]
             j0 = score
     if ja < 5:
-
+        a = 0
     else:
         # back tracing 5 steps from(i-1, j0)
         for aligned_score in range(ja - 4, ja + 1):
-            aligned_onset =
+            aligned_onset = 0
             aligned.append([])
     # back tracing j0 steps from(i-1, j0)
     for score in range(j0, j0 + delta_j + 1):
-
+        a = 0
 
     return j0
 
@@ -250,7 +355,10 @@ def Ita(audio_onset2,audio_onset1,audio_onset,
     else:
         ita = -1
     return ita
+def Update_DP(DP,onset,score,S,ita=0):
+    dp1 = DP[onset - 1][score]
+    dp2 = DP[onset][score - 1]
+    dp3 = DP[onset - 1][score - 1] + S[onset][score] + ita
+    return max(dp1, dp2, dp3)
 #sdv = MCQS(y,sr,min_note,max_note,max_concurrence)
 #S = Similarity(sdv,Concurrence,spv1,spv2,spv3)
-
-

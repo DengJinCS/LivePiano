@@ -1,4 +1,5 @@
 from src.Note_Match import *
+import matplotlib.pyplot as plt
 
 piano_wav = '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav'
 piano_midi = '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
@@ -47,6 +48,7 @@ for i in range(n_block-2):
         Update_S(S=S,sdv=sdv,concurrence=concurrence,
                  spv1=spv1,spv2=spv2,spv3=spv3,
                  onset_count = onset_count,scope = 10)
+        Update_DP(DP=DP,onset=onset_count,score=score_count,S=S,ita=0)
 
 
         #Update DP
