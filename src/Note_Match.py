@@ -292,30 +292,38 @@ def ImprovedSPVs(midi='../piano/chopin_nocturne_b49.mid',step = 0.1):
 
     return min_note,max_note,max_concurrence,Concurrence,SPV1,SPV2,SPV3,Concurrence_time
 
-def Update_S(S,sdv,concurrence,spv1,spv2,spv3,onset_count = 0,scope = 10):
-    if onset_count - scope < 0:
+def Update_Matrix(S,DP,sdv,concurrence,spv1,spv2,spv3,ita=0,onset_index = 0,scope = 10):
+    if onset_index - scope < 0:
         low_index = 0
     else:
-        low_index = onset_count - scope
-    if onset_count + scope > len(concurrence):
+        low_index = onset_index - scope
+    if onset_index + scope > len(concurrence):
         high_index = len(concurrence)
     else:
-        high_index = onset_count + scope
+        high_index = onset_index + scope
+
+    #update Similarity matrix
     for j in range(low_index,high_index):
         correlation1 = pearsonr(sdv, concurrence[j])[0]
         correlation2 = pearsonr(sdv, spv1[j])[0]
         correlation3 = pearsonr(sdv, spv2[j])[0]
         correlation4 = pearsonr(sdv, spv3[j])[0]
         similarity =  max(correlation1, correlation2, correlation3, correlation4)
-        S[onset_count][j] = similarity
-    return S
+        S[onset_index][j] = similarity
+
+    # update DP matrix
+    for j in range(low_index, high_index):
+        dp1 = DP[onset_index - 1][j]
+        dp2 = DP[onset_index][j - 1]
+        dp3 = DP[onset_index - 1][j - 1] + S[onset_index][j] + ita
+        dp = max(dp1, dp2, dp3)
+        DP[onset_index][j] = dp
 
 def Get_j(DP,i,ja,aligned,concurrence_time,onset_time,delta_j = 5):
     # DP (Dynamic programming ) is employed to determine the path with maximum overall similarity.
     # i is the ith onset
     # ja is the index of the previous matched concurrence and
     # Δj is a tolerance window.
-    # j0 is the index of the previous matched concurrence.
     # concurrence_time from midi score
     # onset_time form real time onset
     maxD, minT = 0,1000000
@@ -352,43 +360,40 @@ def Get_j(DP,i,ja,aligned,concurrence_time,onset_time,delta_j = 5):
             # sum2 =  ∑XiXi Yi->concurrence_index
             # sum3 =  ∑Xi∑Xi
             # sum4 =  ∑Xi∑Yi
-            # aligned[j][0] -> concurrence
-            # aligned[j][1] -> onset
+            # aligned[j][0] -> concurrence,Y
+            # aligned[j][1] -> onset,X
             sum1 += aligned[j][1] * aligned[j][0]
             sum2 += aligned[j][1] * aligned[j][1]
             sum3 += aligned[j][1]
             sum4 += aligned[j][0]
-        sum4 *= sum3
-        tmp = sum3
-        sum3 *= sum3
-        m = (sum2 - sum4/N) / (sum3/N - sum2)
-        b = (sum4 - m * sum3) / tmp
+        m = (N*sum1 - sum3*sum4) / (N*sum2 - sum3*sum3)
+        b = (sum4/N - m*sum3/N)
         for j in range(j0,j0 + delta_j + 1):
             predicted_time = (concurrence_time[j] - b) / m
             if abs(predicted_time - onset_time[i]) < minT:
                 j1 = j
     return j0,j1
 
-def Ita(audio_onset2,audio_onset1,audio_onset,
-        score_onset2,score_onset1,score_onset,
-        j,j0,a = 0.1):
+def Ita(aligned,concurrence_time,onset_time,i,j,j0,a = 0.1):
     # ita means the local tempo coefficient
     # m1 & m2 are the slopes of the latest two segments
-    # j is the index of the concurrence
+    # i is the onset index
+    # j is the index of the new matched concurrence
     # j0 is the index of the previous matched concurrence
     # delta_j is a penalty to avoid injurious score jumps & onset insertions
+    if j0 == 0:
+        tempo = 0
+    elif j0 == 1:
+        tempo = aligned[1][0] / aligned[1][1]
+    else:
+        m1 = (concurrence_time[j] - aligned[j0][0]) / (onset_time[i] - aligned[j0][1])
+        m2 = (aligned[j0][0] - aligned[j0-1][0]) / (aligned[j0][1] - aligned[j0-1][1])
+        tempo = m1/m2
     delta_j = j - j0 - 1
-    m1 = (score_onset - score_onset1) / (audio_onset - audio_onset1)
-    m2 = (score_onset1 - score_onset2) / (audio_onset1 - audio_onset2)
-    if m1/m2 < 4:
-        ita = a * (1 - abs(log10(m1/m2) / log10(2)) - delta_j)
+    if j0 != 0 and tempo < 4:
+        ita = a * (1 - abs(log10(tempo) / log10(2)) - delta_j)
     else:
         ita = -1
-    return ita
-def Update_DP(DP,onset,score,S,ita=0):
-    dp1 = DP[onset - 1][score]
-    dp2 = DP[onset][score - 1]
-    dp3 = DP[onset - 1][score - 1] + S[onset][score] + ita
-    return max(dp1, dp2, dp3)
+    return tempo,ita
 #sdv = MCQS(y,sr,min_note,max_note,max_concurrence)
 #S = Similarity(sdv,Concurrence,spv1,spv2,spv3)
