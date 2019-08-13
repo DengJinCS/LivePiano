@@ -98,7 +98,6 @@ def SDVs(MCQS,type=1,onset=-1,onset_len = 30):
             if dAmax < dA[k]:
                 dAmax = dA[k]
         for k in range(len(T_MCQS[0])):
-            print("dMax = ",dAmax)
             if type == 1 and dA[k] > dAmax/20:
                 Psi[k] = dA[k]
             elif type == 2 and dA[k] > dAmax/20:
@@ -187,6 +186,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
                 if index < note_range:
                     SPV3[onset_index][index] = 1
     return min_note,max_note,max_concurrence,Concurrence,SPV1,SPV2,SPV3,Concurrence_time
+
 def ImprovedSPVs(midi='../piano/chopin_nocturne_b49.mid',step = 0.1):
     mid = MidiFile(midi)
     note_on_count = 0
@@ -292,13 +292,15 @@ def ImprovedSPVs(midi='../piano/chopin_nocturne_b49.mid',step = 0.1):
 
     return min_note,max_note,max_concurrence,Concurrence,SPV1,SPV2,SPV3,Concurrence_time
 
-
 def Update_S(S,sdv,concurrence,spv1,spv2,spv3,onset_count = 0,scope = 10):
-    low_index, high_index = 0, len(concurrence)
     if onset_count - scope < 0:
         low_index = 0
+    else:
+        low_index = onset_count - scope
     if onset_count + scope > len(concurrence):
         high_index = len(concurrence)
+    else:
+        high_index = onset_count + scope
     for j in range(low_index,high_index):
         correlation1 = pearsonr(sdv, concurrence[j])[0]
         correlation2 = pearsonr(sdv, spv1[j])[0]
@@ -308,8 +310,7 @@ def Update_S(S,sdv,concurrence,spv1,spv2,spv3,onset_count = 0,scope = 10):
         S[onset_count][j] = similarity
     return S
 
-
-def Get_j(DP,i,ja,concurrence_time,onset_time,delta_j = 5):
+def Get_j(DP,i,ja,aligned,concurrence_time,onset_time,delta_j = 5):
     # DP (Dynamic programming ) is employed to determine the path with maximum overall similarity.
     # i is the ith onset
     # ja is the index of the previous matched concurrence and
@@ -317,31 +318,60 @@ def Get_j(DP,i,ja,concurrence_time,onset_time,delta_j = 5):
     # j0 is the index of the previous matched concurrence.
     # concurrence_time from midi score
     # onset_time form real time onset
-    maxD = 0
-    maxT = 0
-    j0 = 0
-    j1 = 0
-    aligned = []
-    for score in range(ja - delta_j, ja + delta_j + 1):
-        if DP[i-1][score] > maxD:
-            maxD = DP[i-1][score]
-            j0 = score
-    if ja < 5:
-        a = 0
+    maxD, minT = 0,1000000
+    j0, j1 = 0, 0
+    for j in range(ja - delta_j, ja + delta_j + 1):
+        if DP[i-1][j] > maxD:
+            maxD = DP[i-1][j]
+            j0 = j
+    """
+        最小二乘法求回归直线
+        预测下一个concurrence可能对应的onset_time
+        loss = 1/N * ∑ (Yi - (mXi + b))^2
+        ∂loss/∂m = -2/N * ∑(Xi(Yi - (mXi + b))) = 0
+        ∂loss/∂b = -2/N * ∑(Yi - (mXi + b)) = 0
+    """
+    if ja == 0:
+        for j in range(j0,j0 + delta_j + 1):
+            if abs(concurrence_time[j] - onset_time[i]) < minT:
+                j1 = j
     else:
-        # back tracing 5 steps from(i-1, j0)
-        for aligned_score in range(ja - 4, ja + 1):
-            aligned_onset = 0
-            aligned.append([])
-    # back tracing j0 steps from(i-1, j0)
-    for score in range(j0, j0 + delta_j + 1):
-        a = 0
-
-    return j0
+        # back tracing 5(j0) steps from(i-1, j0)
+        if ja > 0 and ja < 5:
+            index = 0
+            N = ja
+        else:
+            index = ja - 4
+            N = 5
+        # sum1 =  ∑XiYi Xi->onset_index
+        # sum2 =  ∑XiXi Yi->concurrence_index
+        # sum3 =  ∑Xi∑Xi
+        sum1, sum2, sum3, sum4 = 0, 0, 0, 0
+        for j in range(index, ja + 1):
+            # sum1 =  ∑XiYi Xi->onset_index
+            # sum2 =  ∑XiXi Yi->concurrence_index
+            # sum3 =  ∑Xi∑Xi
+            # sum4 =  ∑Xi∑Yi
+            # aligned[j][0] -> concurrence
+            # aligned[j][1] -> onset
+            sum1 += aligned[j][1] * aligned[j][0]
+            sum2 += aligned[j][1] * aligned[j][1]
+            sum3 += aligned[j][1]
+            sum4 += aligned[j][0]
+        sum4 *= sum3
+        tmp = sum3
+        sum3 *= sum3
+        m = (sum2 - sum4/N) / (sum3/N - sum2)
+        b = (sum4 - m * sum3) / tmp
+        for j in range(j0,j0 + delta_j + 1):
+            predicted_time = (concurrence_time[j] - b) / m
+            if abs(predicted_time - onset_time[i]) < minT:
+                j1 = j
+    return j0,j1
 
 def Ita(audio_onset2,audio_onset1,audio_onset,
         score_onset2,score_onset1,score_onset,
-        j,j0,a = 0.1,):
+        j,j0,a = 0.1):
     # ita means the local tempo coefficient
     # m1 & m2 are the slopes of the latest two segments
     # j is the index of the concurrence
