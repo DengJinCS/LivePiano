@@ -1,7 +1,9 @@
 from mido import MidiFile
+import numpy as np
 
 class SPV():
     def __init__(self, **params):
+        print(1)
         self.midi_path = params['midi_path']
 
     def get_spv(self):
@@ -39,13 +41,14 @@ class SPV():
                 else:
                     cur_concurrence += 1
         note_range = max_note - min_note + 1
-        concurrence = np.zeros((onset_count, note_range), dtype=int)
-        concurrence_time = np.zeros(onset_count)
-        spv1 = np.zeros((onset_count,note_range), dtype=int)
-        spv2 = np.zeros((onset_count, note_range), dtype=int)
-        spv3 = np.zeros((onset_count, note_range), dtype=int)
+        concurrence = np.zeros((onset_count+1, note_range), dtype=int)
+        concurrence_time = np.zeros(onset_count+1)
+        spv1 = np.zeros((onset_count+1,note_range), dtype=int)
+        spv2 = np.zeros((onset_count+1, note_range), dtype=int)
+        spv3 = np.zeros((onset_count+1, note_range), dtype=int)
         print(concurrence.shape)
         time = 0  # 重新初始化
+        print(1)
         for msg in mid:
             if msg.type != 'note_on' and msg.type != 'note_off':
                 continue
@@ -58,7 +61,7 @@ class SPV():
                     onset_index += 1
                 if pre_time != time:
                     onset_index += 1
-                concurrence_time[onset_index] = time
+                concurrence_time[onset_index+1] = time
             """
             [0] pitchitself
             [12] secondOctave
@@ -68,18 +71,31 @@ class SPV():
             print(onset_index)
             print(f"msg.note:{msg.note}")
             print(f"min_note:{min_note}")
-            concurrence[onset_index][msg.note-min_note + 0] = 1
+            concurrence[onset_index+1][msg.note-min_note + 0] = 1
             print(concurrence[onset_index])
             for over_tune in [0, 12]:
                 over_tune_index = msg.note-min_note+over_tune
                 if over_tune_index < note_range:
-                    spv1[onset_index][over_tune_index] = 1
+                    spv1[onset_index+1][over_tune_index] = 1
             for over_tune in [0, 12, 19]:
                 over_tune_index = msg.note-min_note +over_tune
                 if over_tune_index < note_range:
-                    spv2[onset_index][over_tune_index] = 1
+                    spv2[onset_index+1][over_tune_index] = 1
             for over_tune in [0, 12, 19, 24]:
                 over_tune_index = msg.note-min_note +over_tune
                 if over_tune_index < note_range:
-                    spv3[onset_index][over_tune_index] = 1
+                    spv3[onset_index+1][over_tune_index] = 1
         return min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time
+
+params = {
+        'audio_path': '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
+        'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
+    }
+
+spv = SPV(**params)
+min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time = spv.get_spv()
+print(f"max_concurrence: {max_concurrence}")
+print(concurrence_time)
+print(f"spv1: {spv1}")
+print(f"spv2: {spv2}")
+print(f"spv3: {spv3}")
