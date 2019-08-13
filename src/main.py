@@ -38,9 +38,10 @@ for i in range(n_block-2):
         onset_count +=1
         begin_block = i
         if onset_count == 1:
-            onset_time[onset_count] = concurrence_time[0]
+            onset_time[onset_count] = concurrence_time[1]
         else:
             onset_time[onset_count] = onset_time[0] + (i - begin_block) * block + onset * 0.01
+        print("onset_time:",onset_time[onset_count])
         mcqs = MCQS(y=buff,sr=sr,
                     from_note=min_note,to_note=max_note,
                     max_n=max_concurrence*6)
