@@ -61,7 +61,7 @@ for i in range(n_block-2):
         else:
             if j1 == j0 + 1:
                 # Matched
-                current_match = [onset_count,j1]
+                current_match = [j1,onset_count,]
                 score_count = j1
             else:
                 # Looking-ahead note matching
@@ -71,7 +71,7 @@ for i in range(n_block-2):
                     if S[onset_count][j] > maxS:
                         maxS = S[onset_count][j]
                         j2 = j
-                current_match = [onset_count,j2]
+                current_match = [j2,onset_count]
                 score_count = j2
             matched.append(current_match)
             print("current matched pair:",current_match)
