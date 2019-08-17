@@ -3,8 +3,8 @@ import librosa
 import madmom
 from mido import MidiFile
 from scipy.signal import argrelextrema
-from math import log10
-import pretty_midi
+from math import log, log10
+# import pretty_midi
 from scipy.stats.stats import pearsonr
 
 def Onset(y,margin):
@@ -65,7 +65,7 @@ def MCQS(y,sr,from_note=21,to_note=108,max_n = 12):
 
     return T_MCQS
 
-def SDVs(MCQS,type=1,onset=-1,onset_len = 30):
+def SDVs(MCQS,type=3,onset=-1,onset_len = 30):
     # Spectrum Difference Vectors (SDVs) ψi
     # dAi is the difference between these two vectors
     T_MCQS = MCQS.transpose()
@@ -319,62 +319,55 @@ def Update_Matrix(S,DP,sdv,concurrence,spv1,spv2,spv3,ita=0,onset_index = 0,scop
         dp = max(dp1, dp2, dp3)
         DP[onset_index][j] = dp
 
-def Get_j(DP,i,ja,aligned,concurrence_time,onset_time,delta_j = 5):
+def Get_j(DP,i,ja,aligned_path,concurrence_time, onset_time, delta_j = 3):
     # DP (Dynamic programming ) is employed to determine the path with maximum overall similarity.
     # i is the ith onset
     # ja is the index of the previous matched concurrence and
     # Δj is a tolerance window.
     # concurrence_time from midi score
     # onset_time form real time onset
-    maxD, minT = 0,1000000
+    aligned_path = np.array(aligned_path)
+    maxD, minT1,minT2 = 0,1000000,1000
     j0, j1 = 0, 0
+    print(f"ja:{ja}")
     for j in range(ja - delta_j, ja + delta_j + 1):
+        print(DP[i-1][j],j)
         if DP[i-1][j] > maxD:
             maxD = DP[i-1][j]
             j0 = j
-    """
-        最小二乘法求回归直线
-        预测下一个concurrence可能对应的onset_time
-        loss = 1/N * ∑ (Yi - (mXi + b))^2
-        ∂loss/∂m = -2/N * ∑(Xi(Yi - (mXi + b))) = 0
-        ∂loss/∂b = -2/N * ∑(Yi - (mXi + b)) = 0
-    """
+    print(f"j0:{j0}")
     if ja == 0:
         for j in range(j0,j0 + delta_j + 1):
-            if abs(concurrence_time[j] - onset_time[i]) < minT:
+            if abs(concurrence_time[j] - onset_time[i]) < minT1:
+                minT1 = abs(concurrence_time[j] - onset_time[i])
                 j1 = j
     else:
         # back tracing 5(j0) steps from(i-1, j0)
         if ja > 0 and ja < 5:
-            index = 0
+            start_index = 0
             N = ja
         else:
-            index = ja - 4
-            N = 5
-        # sum1 =  ∑XiYi Xi->onset_index
-        # sum2 =  ∑XiXi Yi->concurrence_index
-        # sum3 =  ∑Xi∑Xi
-        sum1, sum2, sum3, sum4 = 0, 0, 0, 0
-        for j in range(index, ja + 1):
-            # sum1 =  ∑XiYi Xi->onset_index
-            # sum2 =  ∑XiXi Yi->concurrence_index
-            # sum3 =  ∑Xi∑Xi
-            # sum4 =  ∑Xi∑Yi
-            # aligned[j][0] -> concurrence,Y
-            # aligned[j][1] -> onset,X
-            sum1 += aligned[j][1] * aligned[j][0]
-            sum2 += aligned[j][1] * aligned[j][1]
-            sum3 += aligned[j][1]
-            sum4 += aligned[j][0]
-        m = (N*sum1 - sum3*sum4) / (N*sum2 - sum3*sum3)
-        b = (sum4/N - m*sum3/N)
-        for j in range(j0,j0 + delta_j + 1):
-            predicted_time = (concurrence_time[j] - b) / m
-            if abs(predicted_time - onset_time[i]) < minT:
-                j1 = j
-    return j0,j1
+            start_index = ja - 5
+            N = 6
 
-def Ita(aligned,concurrence_time,onset_time,i,j,j0,a = 0.1):
+        print(f"aligned: {aligned_path[start_index:start_index + N,0]}")
+        sum1 = np.sum(aligned_path[start_index:start_index+N,0] * aligned_path[start_index:start_index+N,1])
+        sum2 = np.sum(aligned_path[start_index:start_index+N,1] ** 2)
+        x_mean = np.mean(aligned_path[start_index:start_index + N,1])
+        y_mean = np.mean(aligned_path[start_index:start_index + N,0])
+        w = (sum1 - N * (x_mean * y_mean)) / (sum2 - N * (x_mean ** 2))
+        b = y_mean - w * x_mean
+        predicted_time = (concurrence_time[j0:j0 + delta_j + 1] - b) / w
+        print(w,b)
+        print(f"predicted_time1:{predicted_time}")
+        for j in range(j0, j0 + delta_j + 1):
+            predicted_time = (concurrence_time[j] - b) / w
+            if abs(predicted_time - onset_time[i]) < minT2:
+                minT2 = abs(predicted_time - onset_time[i])
+                j1 = j
+    return j0, j1
+
+def Ita(aligned,concurrence_time,onset_time,i,j,j0,a = 0.2):
     # ita means the local tempo coefficient
     # m1 & m2 are the slopes of the latest two segments
     # i is the onset index
@@ -388,10 +381,14 @@ def Ita(aligned,concurrence_time,onset_time,i,j,j0,a = 0.1):
     else:
         m1 = (concurrence_time[j] - aligned[j0][0]) / (onset_time[i] - aligned[j0][1])
         m2 = (aligned[j0][0] - aligned[j0-1][0]) / (aligned[j0][1] - aligned[j0-1][1])
+        print(f"m1,m2:{m1},{m2}")
         tempo = m1/m2
     delta_j = j - j0 - 1
     if j0 != 0 and tempo < 4:
-        ita = a * (1 - abs(log10(tempo) / log10(2)) - delta_j)
+        print(f"tempo: {tempo}")
+        ita = a * (1 - abs(log(tempo, 2)) - delta_j)
+    elif j0 == 0:
+        ita = 0
     else:
         ita = -1
     return tempo,ita
