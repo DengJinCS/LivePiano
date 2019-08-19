@@ -11,13 +11,13 @@ class SDV():
         self.audio_path = params['audio_path']
         self.midi_path = params['midi_path']
         self.audio, self.sr = librosa.load(self.audio_path, None)
-        self.onset_capture_window = 0.05  # the window used to capture onset in a block of audio
+        self.onset_capture_window = 0.1  # the window used to capture onset in a block of audio
         self.block_length = int(self.onset_capture_window * self.sr)  # block length
-        self.onset_bound = 0.7   # the bound of a possible onset
+        self.onset_bound = 0.9   # the bound of a possible onset
         self.frames_threshold = 5  # the frame numbers can't longer than a onset intervel or a threshold
         self.frame_length = 0.01  # onset detector samples 100 frames per second
         self.concurrence = 5  # concurrence
-        self.sdv_type = 1 # the type of SDV vectors
+        self.sdv_type = 3 # the type of SDV vectors
 
     def Onset_Detector(self, y):
         CNNOnsetProcessor = madmom.features.onsets.CNNOnsetProcessor()
@@ -44,7 +44,6 @@ class SDV():
             index_onset = -1
             max_onset = 0
         return index_onset, max_onset
-
 
     def Realtime_Capture_Onset(self, plot=False):
         onset_x = []
@@ -92,7 +91,7 @@ class SDV():
 
     def MCQS(self, y, start_note, end_note):
         overtone_scale = self.concurrence * 4
-        n_bins = end_note - start_note
+        n_bins = end_note - start_note +1
         Cqt = np.abs(librosa.cqt(y, sr=self.sr, bins_per_octave=12, window='hamm',
                                  fmin=librosa.midi_to_hz(start_note), n_bins=n_bins))
         amplide2dB = librosa.amplitude_to_db(Cqt, ref=np.max)
@@ -109,7 +108,7 @@ class SDV():
             # for i in max_component_Index[0][restricted_index]:
             #     MCQS[frame][i] = frame_pitch[frame][i]
             MCQS[frame][max_component_Index[0][restricted_index]] = frame_pitch[frame][max_component_Index[0][restricted_index]]
-        print(f"pruned: {MCQS.shape}") # 4915,87
+        # print(f"pruned: {MCQS.shape}") # 4915,87
         # print(MCQS[20])
         # MCQS = MCQS.T
         return MCQS
@@ -126,7 +125,7 @@ class SDV():
             mean_after = np.mean(vector_after_onset, axis=0)
 
             dif = mean_after-mean_before
-            print(dif)
+            # print(dif)
             d_max = np.max(dif)
             sdv = np.zeros_like(dif)
             if self.sdv_type == 1:
@@ -166,7 +165,6 @@ class SDV():
 
 class SPV():
     def __init__(self, **params):
-        print(1)
         self.midi_path = params['midi_path']
 
     def get_spv(self):
