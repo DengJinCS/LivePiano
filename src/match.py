@@ -36,13 +36,20 @@ def main(**params):
                 onset_true_time[onset_count] = concurrence_time[1]
                 first_block_index = i
             else:
+                time = onset_true_time[1] + (i-first_block_index)*block_length + index_onset * 0.01
+                if abs(time - matched_pair[-1][1]) < 0.25:
+                    onset_count -= 1
+                    continue
                 onset_true_time[onset_count] = onset_true_time[1] + (i-first_block_index)*block_length + index_onset * 0.01
+
         print(f"onset_time: {onset_true_time[onset_count]}")
         SDVs = sdv.get_SDV(buffer_block, index_onset, min_note, max_note)
         ja = score_count
         j0, j1 = Get_J(DP, i=onset_count, ja=ja, aligned_path=matched_pair,concurrence_time=concurrence_time,
                        onset_time=onset_true_time)
         print(f"j0,j1: {j0},{j1}")
+        if j0 == j1 and j0 != 0:
+            j0 -= 1
         temp0, ita = Ita(aligned_path=matched_pair,concurrence_time=concurrence_time,onset_time=onset_true_time
                          ,i=onset_count,j0=j0,j=j1,a=0.1)
         Update_Similarity_Matrix(S=similarity_matrix, DP=DP,sdv=SDVs,concurrence=concurrence,spv1=spv1
@@ -55,14 +62,16 @@ def main(**params):
                 current_match = [concurrence_time[j1], onset_true_time[onset_count]]
                 score_count = j1
             else:
+                print(" i m here")
                 j2 = j0 + 1
                 max_S = 0
-                for j in range(j2, j1+1):
+                for j in range(j2, j1):
                     if similarity_matrix[onset_count][j] > max_S:
                         max_S = similarity_matrix[onset_count][j]
                         j2 = j
                 current_match = [concurrence_time[j2], onset_true_time[onset_count]]
                 score_count = j2
+
             matched_pair.append(current_match)
             print(f"current matched pair: {current_match}")
 
@@ -111,6 +120,7 @@ def Get_J(DP, i, ja, aligned_path, concurrence_time, onset_time, delta_j=3):
     j0, j1 = 0, 0
     print(f"ja: {ja}")
     for j in range(ja-delta_j, ja+delta_j+1):
+        print(DP[i-1][j], j)
         if DP[i-1][j] > maxD:
             maxD = DP[i-1][j]
             j0 = j
@@ -124,9 +134,12 @@ def Get_J(DP, i, ja, aligned_path, concurrence_time, onset_time, delta_j=3):
         if ja > 0 and ja < 5:
             start_index = 0
             N = ja
+
         else:
             start_index = ja-4
             N = 5
+        if aligned_path[start_index, 0] == 0 and aligned_path[start_index+1, 0] == 0:
+            N += 1
         print(f"aligned_path: {aligned_path[start_index:start_index+N, 0]}")
         sum1 = np.sum(aligned_path[start_index:start_index+N, 0]*aligned_path[start_index:start_index+N, 1])
         sum2 = np.sum(aligned_path[start_index:start_index+N, 1]**2)
@@ -139,7 +152,6 @@ def Get_J(DP, i, ja, aligned_path, concurrence_time, onset_time, delta_j=3):
         print(f"predicted_time: {predicted_time}")
         for j in range(j0, j0+delta_j+1):
             predicted_time = (concurrence_time[j]-b)/w
-
             if abs(predicted_time - onset_time[i]) < minT2:
                 minT2 = abs(predicted_time - onset_time[i])
                 j1 = j
@@ -180,8 +192,10 @@ def Ita(aligned_path, concurrence_time, onset_time, i, j0, j, a=0.1):
     # sdv.Realtime_Capture_Onset()
 
 params = {
-        'audio_path': '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
-        'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
+        # 'audio_path': '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
+        'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.wav',
+        'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.mid'
+        # 'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
     }
 main(**params)
 

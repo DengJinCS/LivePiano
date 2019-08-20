@@ -13,7 +13,7 @@ class SDV():
         self.audio, self.sr = librosa.load(self.audio_path, None)
         self.onset_capture_window = 0.1  # the window used to capture onset in a block of audio
         self.block_length = int(self.onset_capture_window * self.sr)  # block length
-        self.onset_bound = 0.9   # the bound of a possible onset
+        self.onset_bound = 0.95   # the bound of a possible onset
         self.frames_threshold = 5  # the frame numbers can't longer than a onset intervel or a threshold
         self.frame_length = 0.01  # onset detector samples 100 frames per second
         self.concurrence = 5  # concurrence
@@ -91,7 +91,7 @@ class SDV():
 
     def MCQS(self, y, start_note, end_note):
         overtone_scale = self.concurrence * 4
-        n_bins = end_note - start_note +1
+        n_bins = end_note - start_note +26
         Cqt = np.abs(librosa.cqt(y, sr=self.sr, bins_per_octave=12, window='hamm',
                                  fmin=librosa.midi_to_hz(start_note), n_bins=n_bins))
         amplide2dB = librosa.amplitude_to_db(Cqt, ref=np.max)
@@ -250,20 +250,20 @@ class SPV():
 
 if __name__ == "__main__":
     params = {
-        'audio_path': '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
+        'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
         'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
     }
-    spv = SPV(**params)
-    min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time = spv.get_spv()
-    print(f"max_concurrence: {max_concurrence}")
-    print(concurrence_time)
-    print(f"spv1: {spv1.shape}")
-    print(f"spv2: {spv2.shape}")
-    print(f"spv3: {spv3.shape}")
-    # sdv = SDV(**params)
-    # index, onset = sdv.Onset_Detector(sdv.audio)
+    # spv = SPV(**params)
+    # min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time = spv.get_spv()
+    # print(f"max_concurrence: {max_concurrence}")
+    # print(concurrence_time)
+    # print(f"spv1: {spv1.shape}")
+    # print(f"spv2: {spv2.shape}")
+    # print(f"spv3: {spv3.shape}")
+    sdv = SDV(**params)
+    index, onset = sdv.Onset_Detector(sdv.audio)
     # print(index, onset)
     # sdv = sdv.get_SDV(index)
     # print(sdv)
-    # sdv.Calculate_Onset_Recall()
-    # sdv.Realtime_Capture_Onset()
+    sdv.Calculate_Onset_Recall()
+    sdv.Realtime_Capture_Onset()
