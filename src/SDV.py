@@ -13,7 +13,7 @@ class SDV():
         self.audio, self.sr = librosa.load(self.audio_path, None)
         self.onset_capture_window = 0.1  # the window used to capture onset in a block of audio
         self.block_length = int(self.onset_capture_window * self.sr)  # block length
-        self.onset_bound = 0.95   # the bound of a possible onset
+        self.onset_bound = 0.8   # the bound of a possible onset
         self.frames_threshold = 5  # the frame numbers can't longer than a onset intervel or a threshold
         self.frame_length = 0.01  # onset detector samples 100 frames per second
         self.concurrence = 5  # concurrence
@@ -49,45 +49,39 @@ class SDV():
         onset_x = []
         onset_y = []
 
-        index_onsettime = []
-        pre_index_onset, pre_onset = 0, 0
-        counts_onset = 0
         # audio = self.audio[:10 * self.sr]
         audio = self.audio
-        number_block = int(len(audio)/int(self.onset_capture_window*self.sr))
-        for i in range(number_block):
-            block = audio[i*self.block_length:(i+1)*self.block_length]
-            index, onset = self.Onset_Detector(block)
-
-            if index == self.block_length/self.frame_length -1:  # onset 出现在一个窗口的最后一帧
-                i += 0.5
-                pre_index_onset, pre_onset = index, onset
-                new_block = audio[i*self.block_length:(i+1)*self.block_length]
-                index, onset = self.Onset_Detector(new_block)
-                if pre_onset == onset:  # onset 出现在两个窗口的中间
-                    counts_onset += 1
-                    index, onset = pre_index_onset, pre_onset
-                else: # onset 出现在新的窗口中
-                    continue
-            elif index == 0 and pre_onset >= onset: # onset出现在两个窗口中，新的窗口不需要处理这种情况；onset出现在前面窗口也不需要处理这种情况
+        onset_count = 0 # onset 外部计数器
+        block_length = 0.1
+        number_block = int((len(audio)/sdv.sr)//block_length)
+        buffer_block = np.zeros(int(3*block_length*self.sr))
+        for i in range(number_block-2):
+            if i == 0:
+                buffer_block[int(block_length * sdv.sr):int(2 * block_length * sdv.sr)] \
+                    = audio[:int(block_length * sdv.sr)]
+            elif i == 1:
+                buffer_block[:int(2 * block_length * sdv.sr)] = audio[:int(2 * block_length * sdv.sr)]
+            else:
+                buffer_block = audio[int((i - 1) * block_length * sdv.sr):int((i + 2) * block_length * sdv.sr)]
+            index_onset, _  = self.Onset_Detector(buffer_block)
+            if index_onset == -1:
                 continue
-            else: # onset 出现在上述两种情况之外
-                if onset > self.onset_bound:
-                    counts_onset += 1
-            if onset > self.onset_bound:
-                onset_time = i * self.onset_capture_window + index / 100
-                # print(f"{counts_onset}_{onset}_{onset_time}")
-                index_onsettime.append([counts_onset, onset_time])
-                onset_x.append(onset_time*100)
-                onset_y.append(onset)
+            else:
+                onset_y.append(_)
+                onset_count += 1
+                time = i * block_length + index_onset * 0.01
+                onset_x.append(time)
+
         if plot:
+            for i in range(len(onset_x)):
+                onset_x[i] = onset_x[i] * 100
             CNN_onset = madmom.features.onsets.CNNOnsetProcessor()
             total_onset = CNN_onset(audio)
             plt.plot(total_onset, 'g-', linewidth=1)
             plt.plot(onset_x, onset_y, 'r.')
             plt.show()
 
-        return index_onsettime
+        return onset_x
 
     def MCQS(self, y, start_note, end_note):
         overtone_scale = self.concurrence * 4
@@ -150,12 +144,13 @@ class SDV():
             for i in range(1, len(midi_onset)):
                 ground_truth_onset.append([i, float(midi_onset[i].split('\t')[0])])
         predicted_onset = self.Realtime_Capture_Onset()
+        print(predicted_onset)
         # print(ground_truth_onset)
         # print(predicted_onset)
         recall_score = 0
         for i in range(len(ground_truth_onset)):
             for j in range(len(predicted_onset)):
-                if abs(ground_truth_onset[i][1] - predicted_onset[j][1]) < 0.05: # tolrance window
+                if abs(ground_truth_onset[i][1] - predicted_onset[j]) < 0.025: # tolrance window
                     recall_score += 1
                     # print([ground_truth_onset[i][1], predicted_onset[j][1]])
                     break
@@ -250,8 +245,8 @@ class SPV():
 
 if __name__ == "__main__":
     params = {
-        'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
-        'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
+        'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.wav',
+        'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.txt'
     }
     # spv = SPV(**params)
     # min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time = spv.get_spv()
@@ -261,7 +256,6 @@ if __name__ == "__main__":
     # print(f"spv2: {spv2.shape}")
     # print(f"spv3: {spv3.shape}")
     sdv = SDV(**params)
-    index, onset = sdv.Onset_Detector(sdv.audio)
     # print(index, onset)
     # sdv = sdv.get_SDV(index)
     # print(sdv)

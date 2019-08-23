@@ -19,7 +19,7 @@ def main(**params):
     number_block = int((len(audio)/sdv.sr)//block_length)
     onset_count = 0  # 外部的onset计数器
     first_block_index = 0 # 第一个onset出现block区的索引
-    for i in range(number_block-2):
+    for i in range(number_block-1):
         if i == 0:
             buffer_block[int(block_length*sdv.sr):int(2*block_length*sdv.sr)] \
                 = audio[:int(block_length*sdv.sr)]
@@ -28,6 +28,7 @@ def main(**params):
         else:
             buffer_block = audio[int((i-1)*block_length*sdv.sr):int((i+2)*block_length*sdv.sr)]
         index_onset, _ = sdv.Onset_Detector(buffer_block)
+        print(index_onset)
         if index_onset == -1:
             continue
         else:
@@ -37,12 +38,12 @@ def main(**params):
                 first_block_index = i
             else:
                 time = onset_true_time[1] + (i-first_block_index)*block_length + index_onset * 0.01
-                if abs(time - matched_pair[-1][1]) < 0.25:
+                if abs(time - matched_pair[-1][1]) < 0.1:
                     onset_count -= 1
                     continue
                 onset_true_time[onset_count] = onset_true_time[1] + (i-first_block_index)*block_length + index_onset * 0.01
 
-        print(f"onset_time: {onset_true_time[onset_count]}")
+        print(f"onset_time: {onset_true_time[onset_count]}, onset_count: {onset_count}")
         SDVs = sdv.get_SDV(buffer_block, index_onset, min_note, max_note)
         ja = score_count
         j0, j1 = Get_J(DP, i=onset_count, ja=ja, aligned_path=matched_pair,concurrence_time=concurrence_time,
@@ -50,12 +51,12 @@ def main(**params):
         print(f"j0,j1: {j0},{j1}")
         if j0 == j1 and j0 != 0:
             j0 -= 1
-        temp0, ita = Ita(aligned_path=matched_pair,concurrence_time=concurrence_time,onset_time=onset_true_time
+        tempo, ita = Ita(aligned_path=matched_pair,concurrence_time=concurrence_time,onset_time=onset_true_time
                          ,i=onset_count,j0=j0,j=j1,a=0.1)
         Update_Similarity_Matrix(S=similarity_matrix, DP=DP,sdv=SDVs,concurrence=concurrence,spv1=spv1
                                  ,spv2=spv2,spv3=spv3,ita=ita, onset_count=onset_count, scope=10)
-        # print(f"DP:{DP}")
-        if temp0 > 4:  # Insertion
+        print(f"tempo: {tempo}")
+        if tempo > 4:  # Insertion
             continue
         else:
             if j1 == j0 +1:
@@ -193,9 +194,11 @@ def Ita(aligned_path, concurrence_time, onset_time, i, j0, j, a=0.1):
 
 params = {
         # 'audio_path': '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
-        'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.wav',
-        'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.mid'
+        # # 'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.wav',
+        # # 'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.mid'
         # 'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
+        'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.wav',
+        'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.mid'
     }
 main(**params)
 
