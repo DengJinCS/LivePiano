@@ -38,7 +38,7 @@ def main(**params):
                 first_block_index = i
             else:
                 time = onset_true_time[1] + (i-first_block_index)*block_length + index_onset * 0.01
-                if abs(time - matched_pair[-1][1]) < 0.1:
+                if abs(time - matched_pair[-1][1]) < 0.1: # 相隔小于0.1秒被认为是误检onset
                     onset_count -= 1
                     continue
                 onset_true_time[onset_count] = onset_true_time[1] + (i-first_block_index)*block_length + index_onset * 0.01
@@ -49,7 +49,7 @@ def main(**params):
         j0, j1 = Get_J(DP, i=onset_count, ja=ja, aligned_path=matched_pair,concurrence_time=concurrence_time,
                        onset_time=onset_true_time)
         print(f"j0,j1: {j0},{j1}")
-        if j0 == j1 and j0 != 0:
+        if j0 == j1 and j0 != 0: #j0是不能等于j1的，j0一开始等于0也不需要考虑
             j0 -= 1
         tempo, ita = Ita(aligned_path=matched_pair,concurrence_time=concurrence_time,onset_time=onset_true_time
                          ,i=onset_count,j0=j0,j=j1,a=0.1)
@@ -125,6 +125,8 @@ def Get_J(DP, i, ja, aligned_path, concurrence_time, onset_time, delta_j=3):
         if DP[i-1][j] > maxD:
             maxD = DP[i-1][j]
             j0 = j
+    if ja != j0:
+        j0 = ja
 
     if ja == 0:
         for j in range(j0, j0+delta_j+1):
@@ -139,7 +141,7 @@ def Get_J(DP, i, ja, aligned_path, concurrence_time, onset_time, delta_j=3):
         else:
             start_index = ja-4
             N = 5
-        if aligned_path[start_index, 0] == 0 and aligned_path[start_index+1, 0] == 0:
+        if aligned_path[start_index, 0] == 0 and aligned_path[start_index+1, 0] == 0: # 第一个onset出现在0s， 由于aligned_path 第一个元素初始化也为[0,0]
             N += 1
         print(f"aligned_path: {aligned_path[start_index:start_index+N, 0]}")
         sum1 = np.sum(aligned_path[start_index:start_index+N, 0]*aligned_path[start_index:start_index+N, 1])
@@ -158,7 +160,7 @@ def Get_J(DP, i, ja, aligned_path, concurrence_time, onset_time, delta_j=3):
                 j1 = j
     return  j0, j1
 
-def Ita(aligned_path, concurrence_time, onset_time, i, j0, j, a=0.1):
+def Ita(aligned_path, concurrence_time, onset_time, i, j0, j, a=0.2):
     if j0 == 0:
         tempo = 0
     elif j0 == 1:
@@ -194,8 +196,8 @@ def Ita(aligned_path, concurrence_time, onset_time, i, j0, j, a=0.1):
 
 params = {
         # 'audio_path': '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
-        # # 'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.wav',
-        # # 'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.mid'
+        # 'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.wav',
+        # 'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.mid'
         # 'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
         'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.wav',
         'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.mid'

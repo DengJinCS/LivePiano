@@ -21,15 +21,14 @@ class SDV():
 
     def Onset_Detector(self, y):
         CNNOnsetProcessor = madmom.features.onsets.CNNOnsetProcessor()
-        RNNOnsetProcessor = madmom.features.onsets.RNNOnsetProcessor()
-
         cnn_results_onset = CNNOnsetProcessor(y)
-        # rnn_results_onset = RNNOnsetProcessor(y)
-        # onset = (cnn_results_onset + rnn_results_onset)/2
-        onset = cnn_results_onset
-        start_point_1 = int(onset.shape[0]/3)
-        start_point_2 = int(2*onset.shape[0]/3)
-        target = onset[start_point_1:start_point_2]
+
+        onset_cnn = cnn_results_onset
+        start_point_1 = int(onset_cnn.shape[0]/3)
+        start_point_2 = int(2*onset_cnn.shape[0]/3)+1
+        target = onset_cnn[start_point_1:start_point_2]
+        # print(start_point_1)
+        # print(start_point_2)
         max_onset, index_onset = 0, 0
         for index in range(start_point_1):
             if target[index] > max_onset:
@@ -37,12 +36,18 @@ class SDV():
                 index_onset = index
         if max_onset < self.onset_bound:
             index_onset = -1
-        if index_onset == 0 and max_onset < onset[start_point_1-1]:
+        if index_onset == 0 and max_onset < onset_cnn[start_point_1-1]:
+            print(" i was touched1")
             index_onset = -1
             max_onset = 0
-        if index_onset == start_point_1-1 and max_onset < onset[start_point_2]:
+        if index_onset == start_point_1-1 and max_onset < onset_cnn[start_point_2]:
+            print("i was tourched2")
             index_onset = -1
             max_onset = 0
+        # if index_onset == -1:
+        #     RNNOnsetProcessor = madmom.features.onsets.RNNOnsetProcessor()
+        #     rnn_results_onset = RNNOnsetProcessor(y)
+        #     start_point_3 = int(rnn_results_onset.shape[0]/3)
         return index_onset, max_onset
 
     def Realtime_Capture_Onset(self, plot=False):
@@ -55,7 +60,7 @@ class SDV():
         block_length = 0.1
         number_block = int((len(audio)/sdv.sr)//block_length)
         buffer_block = np.zeros(int(3*block_length*self.sr))
-        for i in range(number_block-2):
+        for i in range(number_block-1):
             if i == 0:
                 buffer_block[int(block_length * sdv.sr):int(2 * block_length * sdv.sr)] \
                     = audio[:int(block_length * sdv.sr)]
@@ -257,7 +262,7 @@ if __name__ == "__main__":
     # print(f"spv3: {spv3.shape}")
     sdv = SDV(**params)
     # print(index, onset)
-    # sdv = sdv.get_SDV(index)
+    # sdv = sdv.get_SDV(index)rue
     # print(sdv)
     sdv.Calculate_Onset_Recall()
     sdv.Realtime_Capture_Onset()
