@@ -141,7 +141,7 @@ def SPVs(midi='../piano/chopin_nocturne_b49.mid'):
                 cur_concurrence += 1
 
     note_range = max_note - min_note + 26
-    #print(min_note,max_note,note_range)
+    print(min_note,max_note,note_range)
     Concurrence = np.zeros((onset_count, note_range), dtype=int)
     Concurrence_time = np.zeros(onset_count)
     SPV1 = np.zeros((onset_count, note_range), dtype=int)
@@ -367,7 +367,7 @@ def Get_j(DP,i,ja,aligned_path,concurrence_time, onset_time, delta_j = 3):
                 j1 = j
     return j0, j1
 
-def Ita(aligned,concurrence_time,onset_time,i,j,j0,a = 0.2):
+def Ita(aligned,concurrence_time,onset_time,i,j,j0,a = 0.4):
     # ita means the local tempo coefficient
     # m1 & m2 are the slopes of the latest two segments
     # i is the onset index
