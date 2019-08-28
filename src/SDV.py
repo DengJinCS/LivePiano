@@ -14,7 +14,7 @@ class SDV():
         self.onset_capture_window = 0.1  # the window used to capture onset in a block of audio
         self.block_length = int(self.onset_capture_window * self.sr)  # block length
         self.onset_bound = 0.8   # the bound of a possible onset
-        self.frames_threshold = 5  # the frame numbers can't longer than a onset intervel or a threshold
+        self.frames_threshold = 3  # the frame numbers can't longer than a onset intervel or a threshold
         self.frame_length = 0.01  # onset detector samples 100 frames per second
         self.concurrence = 5  # concurrence
         self.sdv_type = 3 # the type of SDV vectors
@@ -48,7 +48,7 @@ class SDV():
         #     RNNOnsetProcessor = madmom.features.onsets.RNNOnsetProcessor()
         #     rnn_results_onset = RNNOnsetProcessor(y)
         #     start_point_3 = int(rnn_results_onset.shape[0]/3)
-        return index_onset, max_onset
+        return index_onset, max_onset  # 中间这个块的onset索引
 
     def Realtime_Capture_Onset(self, plot=False):
         onset_x = []
@@ -115,10 +115,11 @@ class SDV():
     def get_SDV(self,buffer, index_onset, start_note, end_note, onset_number=30):
         MCQS = self.MCQS(buffer, start_note, end_note)
         bias = int(MCQS.shape[0]/3)
+        bias2 = int(MCQS.shape[0]/6)
         index = int(index_onset*MCQS.shape[0]/onset_number)
         if index_onset != -1:
-            vector_before_onset = MCQS[index:index+bias]
-            vector_after_onset = MCQS[index+bias:index+2*bias]
+            vector_before_onset = MCQS[index+bias2:index+bias]
+            vector_after_onset = MCQS[index+bias:index+bias+bias2]
 
             mean_before=np.mean(vector_before_onset, axis=0)
             mean_after = np.mean(vector_after_onset, axis=0)
@@ -209,7 +210,6 @@ class SPV():
         spv3 = np.zeros((onset_count+1, note_range), dtype=int)
         print(concurrence.shape)
         time = 0  # 重新初始化
-        print(1)
         for msg in mid:
             if msg.type != 'note_on' and msg.type != 'note_off':
                 continue
@@ -236,6 +236,8 @@ class SPV():
             print(concurrence[onset_index])
             for over_tune in [0, 12]:
                 over_tune_index = msg.note-min_note+over_tune
+
+
                 if over_tune_index < note_range:
                     spv1[onset_index+1][over_tune_index] = 1
             for over_tune in [0, 12, 19]:
@@ -250,7 +252,7 @@ class SPV():
 
 if __name__ == "__main__":
     params = {
-        'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.wav',
+        'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/piano.wav',
         'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.txt'
     }
     # spv = SPV(**params)

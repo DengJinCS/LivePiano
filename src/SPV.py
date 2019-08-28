@@ -8,13 +8,11 @@ class SPV():
     def get_spv(self):
         mid = MidiFile(self.midi_path)
         time = 0
-        same_first_onset_flag = 0 #第二个索引onset的时候需要判断onset出现在0秒
         onset_count = 0 # 可能的onset数目
         onset_index = 0 # onset索引的起始条件
         max_note=0 # 最大的音符
         min_note = 108 # 最小的音符
         max_concurrence =1 # 最多的concurrence
-        cur_concurrence =1 # 当前的concurrence
         for msg in mid:
             print(msg)
             if msg.type != 'note_on' and msg.type != 'note_off':
@@ -26,11 +24,7 @@ class SPV():
                 if msg.note < min_note:
                     min_note = msg.note
         note_range = max_note - min_note + 26
-        concurrence = np.zeros((onset_count+1, note_range), dtype=int)
         concurrence_time = np.zeros(onset_count+1)
-        spv1 = np.zeros((onset_count+1, note_range), dtype=int)
-        spv2 = np.zeros((onset_count+1, note_range), dtype=int)
-        spv3 = np.zeros((onset_count+1, note_range), dtype=int)
         # print(concurrence.shape)
         for msg in mid:
             # if msg.type != 'note_on' and msg.type != 'note_off': # 有些歌曲的control_change是有时间的

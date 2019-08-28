@@ -38,7 +38,7 @@ def main(**params):
                 first_block_index = i
             else:
                 time = onset_true_time[1] + (i-first_block_index)*block_length + index_onset * 0.01
-                if abs(time - matched_pair[-1][1]) < 0.1: # 相隔小于0.1秒被认为是误检onset
+                if abs(time - matched_pair[-1][1]) < 0.07: # 相隔小于0.08秒被认为是误检onset
                     onset_count -= 1
                     continue
                 onset_true_time[onset_count] = onset_true_time[1] + (i-first_block_index)*block_length + index_onset * 0.01
@@ -66,13 +66,15 @@ def main(**params):
                 print(" i m here")
                 j2 = j0 + 1
                 max_S = 0
-                for j in range(j2, j1):
+                for j in range(j2, j1+1):
                     if similarity_matrix[onset_count][j] > max_S:
                         max_S = similarity_matrix[onset_count][j]
                         j2 = j
                 current_match = [concurrence_time[j2], onset_true_time[onset_count]]
                 score_count = j2
-
+                print(f"j2: {j2}")
+                # if abs(concurrence_time[j2] - onset_true_time[onset_count]) > 0.1:
+                #     score_count += 1
             matched_pair.append(current_match)
             print(f"current matched pair: {current_match}")
 
@@ -166,8 +168,8 @@ def Ita(aligned_path, concurrence_time, onset_time, i, j0, j, a=0.2):
     elif j0 == 1:
         tempo = aligned_path[j0][0]/aligned_path[j0][1]
     else:
-        m1 = (concurrence_time[j] - aligned_path[j0][0]) / (onset_time[i] - aligned_path[j0][1])
-        m2 = (aligned_path[j0][0] - aligned_path[j0-1][0]) / (aligned_path[j0][1]-aligned_path[j0-1][1])
+        m1 = (concurrence_time[j] - aligned_path[-2][0]) / (onset_time[i] - aligned_path[-2][1])
+        m2 = (aligned_path[-2][0] - aligned_path[-3][0]) / (aligned_path[-2][1]-aligned_path[-3][1])
         tempo = m1/m2
     if j0 != 0 and tempo < 4:
         delta_j = j - j0 -1
@@ -195,7 +197,7 @@ def Ita(aligned_path, concurrence_time, onset_time, i, j0, j, a=0.2):
     # sdv.Realtime_Capture_Onset()
 
 params = {
-        # 'audio_path': '../piano/MAPS_ISOL_CH0.3_F_AkPnBcht.wav',
+        # 'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/piano.wav',
         # 'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.wav',
         # 'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.mid'
         # 'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_ISOL_CH0.3_F_AkPnBcht.mid'
