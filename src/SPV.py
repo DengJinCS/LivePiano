@@ -14,7 +14,7 @@ class SPV():
         min_note = 108 # 最小的音符
         max_concurrence =1 # 最多的concurrence
         for msg in mid:
-            print(msg)
+            # print(msg)
             if msg.type != 'note_on' and msg.type != 'note_off':
                 continue
             if msg.type == "note_on":

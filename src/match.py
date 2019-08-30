@@ -3,8 +3,12 @@ import SPV
 import numpy as np
 from math import log
 from scipy.stats.stats import pearsonr
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 
 def main(**params):
+
     spv = SPV.SPV(**params)
     min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time = spv.get_spv()
     onset_true_time = np.zeros(concurrence.shape[0] * 2) # 每一个onset的时间
@@ -13,7 +17,7 @@ def main(**params):
     DP = np.zeros((len(concurrence)+1, len(concurrence)*2))
     matched_pair = [[0, 0]] # [score_time,onset_time]
     score_count = 0 # 当前匹配到的concurrence索引
-    audio = sdv.audio
+    audio = sdv.audio[:int(50*sdv.sr)]
     block_length = 0.1
     buffer_block = np.zeros(int(3*block_length*sdv.sr))
     number_block = int((len(audio)/sdv.sr)//block_length)
@@ -77,7 +81,7 @@ def main(**params):
                 #     score_count += 1
             matched_pair.append(current_match)
             print(f"current matched pair: {current_match}")
-
+            yield matched_pair
 
 def Update_Similarity_Matrix(S, DP, sdv, concurrence, spv1, spv2, spv3, ita, onset_count, scope=10):
     """
@@ -196,6 +200,19 @@ def Ita(aligned_path, concurrence_time, onset_time, i, j0, j, a=0.2):
     # sdv.Calculate_Onset_Recall()
     # sdv.Realtime_Capture_Onset()
 
+def init():
+    ax.set_xlim(0, 150)
+    ax.set_ylim(0, 150)
+    ax.set_xlabel("Audio: Onset time(Sec)")
+    ax.set_ylabel("Score: Concurrence time(Sec)")
+    return ln,
+
+def update(frame):
+    xdata.append(frame)
+    ydata.append(frame)
+    ln.set_data(xdata, ydata)
+    return ln,
+
 params = {
         # 'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/piano.wav',
         # 'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/chopin_nocturne_b49.wav',
@@ -204,7 +221,17 @@ params = {
         'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.wav',
         'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.mid'
     }
-main(**params)
+frame = main(**params)
+spv = SPV.SPV(**params)
+min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time = spv.get_spv()
+fig, ax = plt.subplots(figsize = (10,10))
+xdata, ydata = [], []
+plt.plot(concurrence_time, concurrence_time, 'r-')
+ln, = plt.plot([], [], 'g')
+
+ani = FuncAnimation(fig, update, frames=frame,
+                    init_func=init, blit=True)
+plt.show()
 
 
 
