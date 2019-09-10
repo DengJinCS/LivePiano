@@ -5,7 +5,7 @@ class SPV():
     def __init__(self, **params):
         self.midi_path = params['midi_path']
 
-    def get_spv(self):
+    def  get_spv(self):
         mid = MidiFile(self.midi_path)
         time = 0
         onset_count = 0 # 可能的onset数目
@@ -69,6 +69,8 @@ class SPV():
                     over_tune_index = msg.note - min_note + over_tune
                     if over_tune_index < note_range:
                         spv3[index[0][0]][over_tune_index] = 1
+                if concurrence_time[0] == 0:
+                    concurrence_time[0] = 0.01
         return min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time
 
 
@@ -89,17 +91,3 @@ class SPV():
         # print(count_set)
         # for msg in mid:
         #     if
-
-params = {
-    'audio_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.wav',
-    'midi_path': '/Users/wanglei/intern_at_pingan/LivePiano/piano/MAPS_MUS-grieg_wanderer_AkPnBsdf.mid'
-    }
-
-spv = SPV(**params)
-spv.get_spv()
-min_note, max_note, max_concurrence, concurrence, spv1, spv2, spv3, concurrence_time = spv.get_spv()
-print(f"max_concurrence: {max_concurrence}")
-print(concurrence_time)
-print(f"spv1: {spv1}") # shape 182 74
-print(f"spv2: {spv2}")
-print(f"spv3: {spv3}")
